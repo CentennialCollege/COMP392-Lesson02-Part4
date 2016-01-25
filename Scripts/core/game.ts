@@ -155,14 +155,14 @@ function createCustomMesh() {
     customGeometry.faces = faces;
     customGeometry.mergeVertices();
     customGeometry.computeFaceNormals();
-    
+
     customMaterials = [
         new LambertMaterial({ opacity: 0.6, color: 0x44ff44, transparent: true }),
         new MeshBasicMaterial({ color: 0x000000, wireframe: true })
     ];
-    
+
     customMesh = THREE.SceneUtils.createMultiMaterialObject(customGeometry, customMaterials);
-    customMesh.children.forEach(function(child) {
+    customMesh.children.forEach((child) => {
         child.castShadow = true;
     });
     customMesh.name = "customMesh";
