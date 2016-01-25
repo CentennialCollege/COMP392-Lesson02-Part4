@@ -25,6 +25,7 @@ import GUI = dat.GUI;
 import Color = THREE.Color;
 import Vector3 = THREE.Vector3;
 import Face3 = THREE.Face3;
+import Point = objects.Point;
 
 //Custom Game Objects
 import gameObject = objects.gameObject;
@@ -42,11 +43,11 @@ var control: Control;
 var gui: GUI;
 var stats: Stats;
 var step: number = 0;
-var vertices:Vector3[] = new Array<Vector3>();
-var faces:Face3[] = new Array<Face3>();
-var customGeometry:Geometry;
-var materials:Material[] = new Array<Material>();
-var customMesh:Object3D;
+var vertices: Vector3[] = new Array<Vector3>();
+var faces: Face3[] = new Array<Face3>();
+var customGeometry: Geometry;
+var customMaterials: Material[] = new Array<Material>();
+var customMesh: Object3D;
 
 function init() {
     // Instantiate a new Scene object
@@ -85,12 +86,16 @@ function init() {
     scene.add(spotLight);
     console.log("Added a SpotLight Light to Scene");
     
-    // Call the Custom Geometry function
-    createCustomGeometry();
+    // Call the Custom Mesh function
+    initializeCustomMesh();
     
     
-    
-    
+    // add controls
+    gui = new GUI();
+    control = new Control(customMesh);
+    addControlPoints();
+    addControl(control);
+
     // Add framerate stats
     addStatsObject();
     console.log("Added Stats to scene...");
@@ -101,49 +106,67 @@ function init() {
     window.addEventListener('resize', onResize, false);
 }
 
-function createCustomGeometry() {
+function initializeCustomMesh(): void {
     vertices = [
-            new THREE.Vector3(1,3,1),
-            new THREE.Vector3(1,3,-1),
-            new THREE.Vector3(1,-1,1),
-            new THREE.Vector3(1,-1,-1),
-            new THREE.Vector3(-1,3,-1),
-            new THREE.Vector3(-1,3,1),
-            new THREE.Vector3(-1,-1,-1),
-            new THREE.Vector3(-1,-1,1)
-        ];
-    
+        new THREE.Vector3(1, 3, 1),
+        new THREE.Vector3(1, 3, -1),
+        new THREE.Vector3(1, -1, 1),
+        new THREE.Vector3(1, -1, -1),
+        new THREE.Vector3(-1, 3, -1),
+        new THREE.Vector3(-1, 3, 1),
+        new THREE.Vector3(-1, -1, -1),
+        new THREE.Vector3(-1, -1, 1)
+    ];
+
     faces = [
-            new THREE.Face3(0,2,1),
-            new THREE.Face3(2,3,1),
-            new THREE.Face3(4,6,5),
-            new THREE.Face3(6,7,5),
-            new THREE.Face3(4,5,1),
-            new THREE.Face3(5,0,1),
-            new THREE.Face3(7,6,2),
-            new THREE.Face3(6,3,2),
-            new THREE.Face3(5,7,0),
-            new THREE.Face3(7,2,0),
-            new THREE.Face3(1,3,4),
-            new THREE.Face3(3,6,4),
-        ];
-        
+        new THREE.Face3(0, 2, 1),
+        new THREE.Face3(2, 3, 1),
+        new THREE.Face3(4, 6, 5),
+        new THREE.Face3(6, 7, 5),
+        new THREE.Face3(4, 5, 1),
+        new THREE.Face3(5, 0, 1),
+        new THREE.Face3(7, 6, 2),
+        new THREE.Face3(6, 3, 2),
+        new THREE.Face3(5, 7, 0),
+        new THREE.Face3(7, 2, 0),
+        new THREE.Face3(1, 3, 4),
+        new THREE.Face3(3, 6, 4),
+    ];
+
+    createCustomMesh();
+
+    console.log("Added Custom Mesh to Scene");
+}
+
+function addControlPoints(): void {
+    control.points.push(new Point(3, 5, 3));
+    control.points.push(new Point(3, 5, 0));
+    control.points.push(new Point(3, 0, 3));
+    control.points.push(new Point(3, 0, 0));
+    control.points.push(new Point(0, 5, 0));
+    control.points.push(new Point(0, 5, 3));
+    control.points.push(new Point(0, 0, 0));
+    control.points.push(new Point(0, 0, 3));
+}
+
+function createCustomMesh() {
     customGeometry = new Geometry();
-    customGeometry.faces = faces;
     customGeometry.vertices = vertices;
+    customGeometry.faces = faces;
     customGeometry.mergeVertices();
+    customGeometry.computeFaceNormals();
     
-    materials = [
-        new LambertMaterial({ opacity:0.6, color: 0x44ff44, transparent:true }),
+    customMaterials = [
+        new LambertMaterial({ opacity: 0.6, color: 0x44ff44, transparent: true }),
         new MeshBasicMaterial({ color: 0x000000, wireframe: true })
     ];
     
-    customMesh = THREE.SceneUtils.createMultiMaterialObject(customGeometry, materials);
-    customMesh.children.forEach(function(child){
+    customMesh = THREE.SceneUtils.createMultiMaterialObject(customGeometry, customMaterials);
+    customMesh.children.forEach(function(child) {
         child.castShadow = true;
     });
+    customMesh.name = "customMesh";
     scene.add(customMesh);
-    console.log("Added Custom Mesh to Scene");
 }
 
 function onResize(): void {
@@ -153,11 +176,14 @@ function onResize(): void {
 }
 
 function addControl(controlObject: Control): void {
-    gui.add(controlObject, 'rotationSpeed', 0, 0.5);
-    gui.add(controlObject, 'addCube');
-    gui.add(controlObject, 'removeCube');
-    gui.add(controlObject, 'outputObjects');
-    gui.add(controlObject, 'numberOfObjects').listen();
+    gui.add(controlObject, 'clone');
+    for (var index = 0; index < 8; index++) {
+        var folder: GUI;
+        folder = gui.addFolder('Vertices ' + (index + 1));
+        folder.add(controlObject.points[index], 'x', -10, 10);
+        folder.add(controlObject.points[index], 'y', -10, 10);
+        folder.add(controlObject.points[index], 'z', -10, 10);
+    }
 }
 
 function addStatsObject() {
@@ -172,7 +198,19 @@ function addStatsObject() {
 // Setup main game loop
 function gameLoop(): void {
     stats.update();
-    
+
+    vertices = new Array<Vector3>();
+    for (var index = 0; index < 8; index++) {
+        vertices.push(new Vector3(
+            control.points[index].x,
+            control.points[index].y,
+            control.points[index].z));
+    }
+
+    // remove our customMesh from the scene and add it every frame 
+    scene.remove(scene.getObjectByName("customMesh"));
+    createCustomMesh();
+
     // render using requestAnimationFrame
     requestAnimationFrame(gameLoop);
 	
@@ -185,7 +223,7 @@ function setupRenderer(): void {
     renderer = new Renderer();
     renderer.setClearColor(0xEEEEEE, 1.0);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMapEnabled = true;
+    renderer.shadowMap.enabled = true;
     console.log("Finished setting up Renderer...");
 }
 

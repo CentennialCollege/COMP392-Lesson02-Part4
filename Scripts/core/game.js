@@ -23,6 +23,7 @@ var GUI = dat.GUI;
 var Color = THREE.Color;
 var Vector3 = THREE.Vector3;
 var Face3 = THREE.Face3;
+var Point = objects.Point;
 //Custom Game Objects
 var gameObject = objects.gameObject;
 var scene;
@@ -41,7 +42,7 @@ var step = 0;
 var vertices = new Array();
 var faces = new Array();
 var customGeometry;
-var materials = new Array();
+var customMaterials = new Array();
 var customMesh;
 function init() {
     // Instantiate a new Scene object
@@ -67,8 +68,13 @@ function init() {
     spotLight.castShadow = true;
     scene.add(spotLight);
     console.log("Added a SpotLight Light to Scene");
-    // Call the Custom Geometry function
-    createCustomGeometry();
+    // Call the Custom Mesh function
+    initializeCustomMesh();
+    // add controls
+    gui = new GUI();
+    control = new Control(customMesh);
+    addControlPoints();
+    addControl(control);
     // Add framerate stats
     addStatsObject();
     console.log("Added Stats to scene...");
@@ -76,7 +82,7 @@ function init() {
     gameLoop(); // render the scene	
     window.addEventListener('resize', onResize, false);
 }
-function createCustomGeometry() {
+function initializeCustomMesh() {
     vertices = [
         new THREE.Vector3(1, 3, 1),
         new THREE.Vector3(1, 3, -1),
@@ -101,20 +107,35 @@ function createCustomGeometry() {
         new THREE.Face3(1, 3, 4),
         new THREE.Face3(3, 6, 4),
     ];
+    createCustomMesh();
+    console.log("Added Custom Mesh to Scene");
+}
+function addControlPoints() {
+    control.points.push(new Point(3, 5, 3));
+    control.points.push(new Point(3, 5, 0));
+    control.points.push(new Point(3, 0, 3));
+    control.points.push(new Point(3, 0, 0));
+    control.points.push(new Point(0, 5, 0));
+    control.points.push(new Point(0, 5, 3));
+    control.points.push(new Point(0, 0, 0));
+    control.points.push(new Point(0, 0, 3));
+}
+function createCustomMesh() {
     customGeometry = new Geometry();
-    customGeometry.faces = faces;
     customGeometry.vertices = vertices;
+    customGeometry.faces = faces;
     customGeometry.mergeVertices();
-    materials = [
+    customGeometry.computeFaceNormals();
+    customMaterials = [
         new LambertMaterial({ opacity: 0.6, color: 0x44ff44, transparent: true }),
         new MeshBasicMaterial({ color: 0x000000, wireframe: true })
     ];
-    customMesh = THREE.SceneUtils.createMultiMaterialObject(customGeometry, materials);
+    customMesh = THREE.SceneUtils.createMultiMaterialObject(customGeometry, customMaterials);
     customMesh.children.forEach(function (child) {
         child.castShadow = true;
     });
+    customMesh.name = "customMesh";
     scene.add(customMesh);
-    console.log("Added Custom Mesh to Scene");
 }
 function onResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -122,11 +143,14 @@ function onResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 function addControl(controlObject) {
-    gui.add(controlObject, 'rotationSpeed', 0, 0.5);
-    gui.add(controlObject, 'addCube');
-    gui.add(controlObject, 'removeCube');
-    gui.add(controlObject, 'outputObjects');
-    gui.add(controlObject, 'numberOfObjects').listen();
+    gui.add(controlObject, 'clone');
+    for (var index = 0; index < 8; index++) {
+        var folder;
+        folder = gui.addFolder('Vertices ' + (index + 1));
+        folder.add(controlObject.points[index], 'x', -10, 10);
+        folder.add(controlObject.points[index], 'y', -10, 10);
+        folder.add(controlObject.points[index], 'z', -10, 10);
+    }
 }
 function addStatsObject() {
     stats = new Stats();
@@ -139,6 +163,13 @@ function addStatsObject() {
 // Setup main game loop
 function gameLoop() {
     stats.update();
+    vertices = new Array();
+    for (var index = 0; index < 8; index++) {
+        vertices.push(new Vector3(control.points[index].x, control.points[index].y, control.points[index].z));
+    }
+    // remove our customMesh from the scene and add it every frame 
+    scene.remove(scene.getObjectByName("customMesh"));
+    createCustomMesh();
     // render using requestAnimationFrame
     requestAnimationFrame(gameLoop);
     // render the scene
@@ -149,7 +180,7 @@ function setupRenderer() {
     renderer = new Renderer();
     renderer.setClearColor(0xEEEEEE, 1.0);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMapEnabled = true;
+    renderer.shadowMap.enabled = true;
     console.log("Finished setting up Renderer...");
 }
 // Setup main camera for the scene

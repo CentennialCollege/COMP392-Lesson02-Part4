@@ -17,7 +17,7 @@
     "Scripts/lib"
   ],
   "dependencies": {
-    "three.js": "~0.72.0",
+    "three.js": "threejs#*",
     "dat-gui": "~0.5.1",
     "stats.js": "*",
     "threex.colliders": "*"

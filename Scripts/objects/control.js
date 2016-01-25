@@ -4,34 +4,25 @@ var objects;
     // CONTROL CLASS ++++++++++++++++++++++++++++++++++++++++++
     var Control = (function () {
         // CONSTRUCTOR ++++++++++++++++++++++++++++++++++++++++
-        function Control(rotationSpeed, planeWidth, planeHeight) {
-            this.rotationSpeed = rotationSpeed;
-            this.numberOfObjects = scene.children.length;
-            this._planeWidth = planeWidth;
-            this._planeHeight = planeHeight;
+        function Control(mesh) {
+            this.points = new Array();
+            this.mesh = mesh;
         }
-        //PUBLIC METHODS ++++++++++++++++++++++++++++++++++++++++
-        // Remove Cube Method +++++++++++++++++++++++++++++++++
-        Control.prototype.removeCube = function () {
-            var allChildren = scene.children;
-            var lastObject = allChildren[allChildren.length - 1];
-            if (lastObject instanceof THREE.Mesh) {
-                scene.remove(lastObject);
-                this.numberOfObjects = scene.children.length;
-            }
-        };
-        // Add Cube Method
-        Control.prototype.addCube = function () {
-            var cubeSize = Math.ceil((Math.random() * 3));
-            var cubeGeometry = new THREE.CubeGeometry(cubeSize, cubeSize, cubeSize);
-            var cubeMaterial = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
-            var cube = new objects.gameObject(cubeGeometry, cubeMaterial, -30 + Math.round((Math.random() * this._planeWidth)), Math.round((Math.random() * 5)), -20 + Math.round((Math.random() * this._planeHeight)));
-            scene.add(cube);
-            this.numberOfObjects = scene.children.length;
-        };
-        // show scene objects
-        Control.prototype.outputObjects = function () {
-            console.log(scene.children);
+        //PUBLIC METHODS +++++++++++++++++++++++++++++++++++++++
+        Control.prototype.clone = function () {
+            var materials = [
+                new THREE.MeshLambertMaterial({ opacity: 0.6, color: 0xff44ff, transparent: true }),
+                new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true })
+            ];
+            var mesh2 = THREE.SceneUtils.createMultiMaterialObject(customGeometry, materials);
+            mesh2.children.forEach(function (child) {
+                child.castShadow = true;
+            });
+            mesh2.translateX(5);
+            mesh2.translateZ(5);
+            mesh2.name = "clone";
+            scene.remove(scene.getObjectByName("clone"));
+            scene.add(mesh2);
         };
         return Control;
     })();
