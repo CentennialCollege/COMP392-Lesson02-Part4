@@ -10,10 +10,13 @@ import BoxGeometry = THREE.BoxGeometry;
 import CubeGeometry = THREE.CubeGeometry;
 import PlaneGeometry = THREE.PlaneGeometry;
 import SphereGeometry = THREE.SphereGeometry;
+import Geometry = THREE.Geometry;
 import AxisHelper = THREE.AxisHelper;
 import LambertMaterial = THREE.MeshLambertMaterial;
 import MeshBasicMaterial = THREE.MeshBasicMaterial;
+import Material = THREE.Material;
 import Mesh = THREE.Mesh;
+import Object3D = THREE.Object3D;
 import SpotLight = THREE.SpotLight;
 import PointLight = THREE.PointLight;
 import AmbientLight = THREE.AmbientLight;
@@ -21,6 +24,7 @@ import Control = objects.Control;
 import GUI = dat.GUI;
 import Color = THREE.Color;
 import Vector3 = THREE.Vector3;
+import Face3 = THREE.Face3;
 
 //Custom Game Objects
 import gameObject = objects.gameObject;
@@ -38,6 +42,11 @@ var control: Control;
 var gui: GUI;
 var stats: Stats;
 var step: number = 0;
+var vertices:Vector3[] = new Array<Vector3>();
+var faces:Face3[] = new Array<Face3>();
+var customGeometry:Geometry;
+var materials:Material[] = new Array<Material>();
+var customMesh:Object3D;
 
 function init() {
     // Instantiate a new Scene object
@@ -71,14 +80,16 @@ function init() {
 	
     // Add a SpotLight to the scene
     spotLight = new SpotLight(0xffffff);
-    spotLight.position.set(-40, 40, 50);
+    spotLight.position.set(-40, 60, 10);
     spotLight.castShadow = true;
     scene.add(spotLight);
     console.log("Added a SpotLight Light to Scene");
     
-    // add geometries
-    addGeometries(scene);
-    console.log("Added various Geometries to scene...");
+    // Call the Custom Geometry function
+    createCustomGeometry();
+    
+    
+    
     
     // Add framerate stats
     addStatsObject();
@@ -90,62 +101,49 @@ function init() {
     window.addEventListener('resize', onResize, false);
 }
 
-function addGeometries(scene: Scene): void {
-    var geoms: THREE.Geometry[] = new Array<THREE.Geometry>();
-
-    geoms.push(new THREE.CylinderGeometry(1, 4, 4));
-
-    // basic cube
-    geoms.push(new THREE.CubeGeometry(2, 2, 2));
-    console.log(new THREE.CubeGeometry(2, 2, 2));
-
-    // basic spherer
-    geoms.push(new THREE.SphereGeometry(2));
-
-    geoms.push(new THREE.IcosahedronGeometry(4, 1));
-
-    // create a lathgeometry
-    //http://en.wikipedia.org/wiki/Lathe_(graphics)
-    var pts = [];//points array - the path profile points will be stored here
-    var detail: number = .1;//half-circle detail - how many angle increments will be used to generate points
-    var radius: number = 3;//radius for half_sphere
-    for (var angle: number = 0.0; angle < Math.PI; angle += detail) {//loop from 0.0 radians to PI (0 - 180 degrees)
-        pts.push(new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));//angle/radius to x,z
-    }
-    geoms.push(new THREE.LatheGeometry(pts, 12));
-
-    // create a OctahedronGeometry
-    geoms.push(new THREE.OctahedronGeometry(3, 1));
-
-    geoms.push(new THREE.TetrahedronGeometry(3));
-
-    geoms.push(new THREE.TorusGeometry(3, 1, 10, 10));
-
-    geoms.push(new THREE.TorusKnotGeometry(3, 0.5, 50, 20));
-
-    var positionIndex: number = 0;
-    for (var index: number = 0; index < geoms.length; index++) {
-        var cubeMaterial = new THREE.MeshLambertMaterial({ wireframe: true, color: Math.random() * 0xffffff });
-
-        var materials = [
-            new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff, shading: THREE.FlatShading }),
-            new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true })
+function createCustomGeometry() {
+    vertices = [
+            new THREE.Vector3(1,3,1),
+            new THREE.Vector3(1,3,-1),
+            new THREE.Vector3(1,-1,1),
+            new THREE.Vector3(1,-1,-1),
+            new THREE.Vector3(-1,3,-1),
+            new THREE.Vector3(-1,3,1),
+            new THREE.Vector3(-1,-1,-1),
+            new THREE.Vector3(-1,-1,1)
         ];
-
-        var mesh = THREE.SceneUtils.createMultiMaterialObject(geoms[index], materials);
-        mesh.traverse(function(e) { e.castShadow = true });
-
-        //var mesh = new THREE.Mesh(geoms[i],materials[i]);
-        //mesh.castShadow=true;
-        mesh.position.x = -24 + ((index % 4) * 12);
-        mesh.position.y = 4;
-        mesh.position.z = -8 + (positionIndex * 12);
-
-        if ((index + 1) % 4 == 0) {
-            positionIndex++;
-        }
-        scene.add(mesh);
-    }
+    
+    faces = [
+            new THREE.Face3(0,2,1),
+            new THREE.Face3(2,3,1),
+            new THREE.Face3(4,6,5),
+            new THREE.Face3(6,7,5),
+            new THREE.Face3(4,5,1),
+            new THREE.Face3(5,0,1),
+            new THREE.Face3(7,6,2),
+            new THREE.Face3(6,3,2),
+            new THREE.Face3(5,7,0),
+            new THREE.Face3(7,2,0),
+            new THREE.Face3(1,3,4),
+            new THREE.Face3(3,6,4),
+        ];
+        
+    customGeometry = new Geometry();
+    customGeometry.faces = faces;
+    customGeometry.vertices = vertices;
+    customGeometry.mergeVertices();
+    
+    materials = [
+        new LambertMaterial({ opacity:0.6, color: 0x44ff44, transparent:true }),
+        new MeshBasicMaterial({ color: 0x000000, wireframe: true })
+    ];
+    
+    customMesh = THREE.SceneUtils.createMultiMaterialObject(customGeometry, materials);
+    customMesh.children.forEach(function(child){
+        child.castShadow = true;
+    });
+    scene.add(customMesh);
+    console.log("Added Custom Mesh to Scene");
 }
 
 function onResize(): void {
@@ -194,9 +192,9 @@ function setupRenderer(): void {
 // Setup main camera for the scene
 function setupCamera(): void {
     camera = new PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.x = -50;
-    camera.position.y = 30;
+    camera.position.x = -20;
+    camera.position.y = 25;
     camera.position.z = 20;
-    camera.lookAt(new Vector3(-10, 0, 0));
+    camera.lookAt(new Vector3(5, 0, 0));
     console.log("Finished setting up Camera...");
 }
